@@ -11,6 +11,7 @@ local util = require("neotest-vitest.util")
 ---@field cwd? string|fun(): string
 ---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
 ---@field is_test_file? fun(file_path: string): boolean
+---@field additional_treesitter_queries? string|fun(): string
 
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
@@ -145,7 +146,7 @@ function adapter.discover_positions(path)
       )
       arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
     )) @test.definition
-  ]]
+  ]] .. "\n" .. getAdditionalTreesitterQueries()
 
   return lib.treesitter.parse_positions(path, query, { nested_tests = true })
 end
@@ -242,6 +243,11 @@ end
 ---@return string|nil
 local function getCwd(path)
   return nil
+end
+
+---@return string
+local function getAdditionyTreesitterQueries()
+  return ""
 end
 
 local function cleanAnsi(s)
@@ -448,6 +454,13 @@ setmetatable(adapter, {
     elseif opts.cwd then
       getCwd = function()
         return opts.cwd
+      end
+    end
+    if is_callable(opts.additional_treesitter_queries) then
+      getAdditionalTreesitterQueries = opts.additional_treesitter_queries
+    elseif opts.additional_treesitter_queries then
+      getAdditionalTreesitterQueries = function()
+        return opts.additional_treesitter_queries
       end
     end
 
